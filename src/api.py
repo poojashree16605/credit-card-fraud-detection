@@ -4,6 +4,9 @@ import joblib
 import pandas as pd
 
 app = FastAPI()
+@app.get("/")
+def health():
+    return {"status": "ok", "message": "API is running"}
 model = joblib.load("src/artifacts/fraud_model.pkl")
 
 class BatchData(BaseModel):
