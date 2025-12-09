@@ -1,6 +1,9 @@
-fastapi
-uvicorn
-scikit-learn
+streamlit
 pandas
+requests
+matplotlib
+seaborn
+numpy
+scikit-learn
 joblib
 python-multipart
