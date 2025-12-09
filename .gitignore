@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+.venv/
+.Python
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data & large files
+data/
+*.csv
+
+# Python packaging/build
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# macOS
+*.DS_Store
+
+# Ignore local secret config
+.env
+secrets.json
+
+# artifacts (optional: if you want model in repo remove this line)
+# src/artifacts/
