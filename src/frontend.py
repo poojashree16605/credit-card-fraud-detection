@@ -4,7 +4,7 @@ import requests
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
-API_URL = "http://localhost:8000"
+API_URL = "https://fraud-api-pooja.onrender.com"
 
 # Streamlit Page Settings
 st.set_page_config(page_title="Credit Card Fraud Detection", layout="wide")
