@@ -4,7 +4,7 @@ import requests
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
-API_URL = "https://fraud-api-pooja.onrender.com"
+API_URL = "https://fraud-api-pooja.onrender.com/predict_batch"
 
 # Streamlit Page Settings
 st.set_page_config(page_title="Credit Card Fraud Detection", layout="wide")
@@ -29,7 +29,7 @@ if uploaded:
         payload = {"data": df.to_dict(orient="records")}
 
         try:
-            res = requests.post(f"{API_URL}/predict_batch", json=payload)
+            res = requests.post(API_URL, json=payload)
 
             if res.ok:
                 result = res.json()
