@@ -4,6 +4,7 @@ import requests
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
+API_URL = "http://localhost:8000"
 
 # Streamlit Page Settings
 st.set_page_config(page_title="Credit Card Fraud Detection", layout="wide")
@@ -28,7 +29,7 @@ if uploaded:
         payload = {"data": df.to_dict(orient="records")}
 
         try:
-            res = requests.post("http://localhost:8000/predict_batch", json=payload)
+            res = requests.post(f"{API_URL}/predict_batch", json=payload)
 
             if res.ok:
                 result = res.json()
