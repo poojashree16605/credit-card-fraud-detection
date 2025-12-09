@@ -1,14 +1,16 @@
 import streamlit as st
 import pandas as pd
-import requests
+import joblib
 import io
 import matplotlib.pyplot as plt
 import seaborn as sns
-API_URL = "https://fraud-api-pooja.onrender.com/predict_batch"
 
-# Streamlit Page Settings
-st.set_page_config(page_title="Credit Card Fraud Detection", layout="wide")
-st.title("💳 Credit Card Fraud Detection System")
+# Page settings
+st.set_page_config(page_title="Credit Card Fraud Detector", layout="wide")
+st.title("💳 Credit Card Fraud Detection – Offline Mode")
+
+# Load trained model
+model = joblib.load("src/artifacts/fraud_model.pkl")
 
 uploaded = st.file_uploader("Upload Transaction CSV", type=["csv"])
 
@@ -23,88 +25,43 @@ if uploaded:
     st.write(df.head())
 
     if st.button("Check Fraud"):
-        st.info("Processing... Please wait...")
+        st.info("Processing… Please wait...")
 
-        # Prepare data for API
-        payload = {"data": df.to_dict(orient="records")}
+        # MODEL PREDICTION (NO API)
+        predictions = model.predict(df)
+        probabilities = model.predict_proba(df)[:, 1]
 
-        try:
-            res = requests.post(API_URL, json=payload)
+        df["prediction"] = predictions
+        df["probability"] = probabilities
 
-            if res.ok:
-                result = res.json()
+        st.subheader("Prediction Results:")
+        st.write(df.head())
 
-                # Add prediction results
-                df["prediction"] = result["predictions"]
-                df["probability"] = result["probabilities"]
+        fraud_cases = df[df["prediction"] == 1]
+        st.error(f"⚠️ Fraud Detected: {len(fraud_cases)} transactions")
 
-                st.subheader("Prediction Results:")
-                st.write(df.head())
+        # Download CSV
+        csv_data = df.to_csv(index=False)
+        st.download_button(
+            "⬇ Download Fraud Report CSV",
+            csv_data,
+            "fraud_results.csv",
+            "text/csv"
+        )
 
-                # Count frauds
-                flagged = df[df["prediction"] == 1]
-                st.error(f"⚠️ Detected {len(flagged)} Fraudulent Transactions")
+        # Visualizations
+        st.subheader("📊 Fraud Detection Charts")
 
-                # -------------------------------
-                # 📌 DOWNLOAD RESULTS CSV
-                # -------------------------------
-                csv_buffer = io.StringIO()
-                df.to_csv(csv_buffer, index=False)
-                csv_data = csv_buffer.getvalue()
+        # Bar chart
+        fig, ax = plt.subplots()
+        sns.countplot(x=df["prediction"], palette="coolwarm", ax=ax)
+        ax.set_xticklabels(["Not Fraud (0)", "Fraud (1)"])
+        st.pyplot(fig)
 
-                st.download_button(
-                    label="⬇ Download Full Predictions CSV",
-                    data=csv_data,
-                    file_name="fraud_detection_results.csv",
-                    mime="text/csv"
-                )
+        # Probability distribution
+        fig2, ax2 = plt.subplots()
+        sns.histplot(df["probability"], bins=40, kde=True, color="purple", ax=ax2)
+        ax2.set_title("Probability Distribution")
+        st.pyplot(fig2)
 
-                # -------------------------------
-                # 📊 VISUALIZATION DASHBOARD
-                # -------------------------------
-                st.subheader("📊 Fraud Detection Visualizations")
-
-                # 1️⃣ Fraud vs Non-Fraud Count
-                st.write("### 1️⃣ Fraud vs Non-Fraud Count")
-                count_fig, ax = plt.subplots()
-                sns.countplot(x=df["prediction"], palette="coolwarm", ax=ax)
-                ax.set_xticklabels(["Not Fraud (0)", "Fraud (1)"])
-                st.pyplot(count_fig)
-
-                # 2️⃣ Fraud Amount Distribution (if Amount column exists)
-                if "Amount" in df.columns:
-                    st.write("### 2️⃣ Fraud Amount Distribution")
-                    amt_fig, ax = plt.subplots()
-                    sns.histplot(
-                        data=df,
-                        x="Amount",
-                        hue="prediction",
-                        bins=50,
-                        kde=True,
-                        palette="coolwarm",
-                        ax=ax
-                    )
-                    st.pyplot(amt_fig)
-
-                # 3️⃣ Fraud Probability Distribution
-                st.write("### 3️⃣ Fraud Probability Distribution")
-                prob_fig, ax = plt.subplots()
-                sns.histplot(df["probability"], bins=50, kde=True, color="purple", ax=ax)
-                ax.set_title("Probability Distribution")
-                st.pyplot(prob_fig)
-
-                # 4️⃣ Pie Chart
-                st.write("### 4️⃣ Fraud vs Non-Fraud Pie Chart")
-                pie_fig, ax = plt.subplots()
-                sizes = df["prediction"].value_counts()
-                labels = ["Not Fraud", "Fraud"]
-                ax.pie(sizes, labels=labels, autopct="%1.1f%%", colors=["skyblue", "red"])
-                ax.set_title("Fraud Percentage")
-                st.pyplot(pie_fig)
-
-            else:
-                st.error("API Error: Could not get predictions. Check backend logs.")
-
-        except Exception as e:
-            st.error(f"Error connecting to API: {e}")
 

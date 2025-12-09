@@ -1,31 +1,55 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-import joblib
+import streamlit as st
 import pandas as pd
+import joblib
+import io
+import matplotlib.pyplot as plt
 
-app = FastAPI()
-@app.get("/")
-def health():
-    return {"status": "ok", "message": "API is running"}
-model = joblib.load("src/artifacts/fraud_model.pkl")
+# Load ML model
+model = joblib.load("fraud_model.pkl")
 
-class BatchData(BaseModel):
-    data: list
+st.set_page_config(page_title="Fraud Detection", layout="wide")
 
-@app.post("/predict_batch")
-def predict_batch(batch: BatchData):
-    df = pd.DataFrame(batch.data)
+st.title("💳 Credit Card Fraud Detection (Offline Mode)")
 
-    # FIX: Remove "Class" column if present
+uploaded = st.file_uploader("Upload CSV file", type=["csv"])
+
+if uploaded:
+    df = pd.read_csv(uploaded)
+
+    # Remove Class if present
     if "Class" in df.columns:
         df = df.drop(columns=["Class"])
 
-    preds = model.predict(df)
-    probas = model.predict_proba(df)[:, 1]
+    st.subheader("Data Preview:")
+    st.write(df.head())
 
-    return {
-        "predictions": preds.tolist(),
-        "probabilities": probas.tolist()
-    }
+    if st.button("Check Fraud"):
+        st.info("Processing... Please wait...")
 
+        # Predict
+        predictions = model.predict(df)
+        probabilities = model.predict_proba(df)[:, 1]
 
+        df["prediction"] = predictions
+        df["probability"] = probabilities
+
+        st.subheader("Prediction Results:")
+        st.write(df.head())
+
+        # Fraud count
+        fraud = df[df["prediction"] == 1]
+        st.error(f"⚠️ Detected {len(fraud)} Fraudulent Transactions")
+
+        # Download results
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        st.download_button("⬇ Download Results CSV",
+                           csv_buffer.getvalue(),
+                           "fraud_results.csv",
+                           "text/csv")
+
+        # Plot
+        fig, ax = plt.subplots()
+        df["prediction"].value_counts().plot(kind="bar", ax=ax)
+        ax.set_title("Fraud vs Non-Fraud")
+        st.pyplot(fig)
